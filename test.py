@@ -1,77 +1,49 @@
 #!/usr/bin/env python
 
+from __future__ import division
 import random, math
-from figen import ImageGenerator
+import time
+from figen import fixImage, varImage
 
 
-@ImageGenerator(600, 600)
-def test(x, y) :
-	val = int(((x + y) / 1200.0) * 255)
-	return 0, val / 2, val
+def toRGB(hue, sat = 1, val = 1) :
+	r = (1 - abs((hue / 60) % 2 - 1)) if 60 <= hue < 120 or 240 <= hue < 300 else int(hue not in range(120, 240))
+	g = (1 - abs((hue / 60) % 2 - 1)) if 0 <= hue < 60 or 180 <= hue < 240 else int(hue not in range(240, 360))
+	b = (1 - abs((hue / 60) % 2 - 1)) if 120 <= hue < 180 or 300 <= hue < 360 else int(hue not in range(0, 120))
+	return [ int((c * sat + 1 - sat) * val * 255) for c in (r, g, b) ]
 
-"""
-char red_fn(int i,int j){
-    float x=0,y=0,k=0,X,Y;while(k++<256e2&&(X=x*x)+(Y=y*y)<4)y=2*x*y+(j-89500)/102400.,x=X-Y+(i-14680)/102400.;return log(k)/10.15*256;
-}
-char green_fn(int i,int j){
-    float x=0,y=0,k=0,X,Y;while(k++<256e2&&(X=x*x)+(Y=y*y)<4)y=2*x*y+(j-89500)/102400.,x=X-Y+(i-14680)/102400.;return log(k)/10.15*256;
-}
-char blue_fn(int i,int j){
-    float x=0,y=0,k=0,X,Y;while(k++<256e2&&(X=x*x)+(Y=y*y)<4)y=2*x*y+(j-89500)/102400.,x=X-Y+(i-14680)/102400.;return 128-k/200;
-}
-"""
 
-@ImageGenerator(1024, 1024)
-def simplemandelbrot(x, y) :
-	a = b = n = 0
-	while n+1 < 256e2 and a*a + b*b < 4 :
-		n += 1
-		A = a*a
-		B = b*b
-		b = 2 * a * b + (y - 89500) / 102400.0
-		a = A - B + (x - 14680) / 102400.0
-	r = g = int(math.log(n) / 10.15 * 256)
-	b = int(128 - n / 200.0)
-	return r, g, b
+width = 4096
+height = 4096
 
-"""
-unsigned char RD(int i,int j){
-   double a=0,b=0,c,d,n=0;
-   while((c=a*a)+(d=b*b)<4&&n++<880)
-   {b=2*a*b+j*8e-9-.645411;a=c-d+i*8e-9+.356888;}
-   return 255*pow((n-80)/800,3.);
-}
-unsigned char GR(int i,int j){
-   double a=0,b=0,c,d,n=0;
-   while((c=a*a)+(d=b*b)<4&&n++<880)
-   {b=2*a*b+j*8e-9-.645411;a=c-d+i*8e-9+.356888;}
-   return 255*pow((n-80)/800,.7);
-}
-unsigned char BL(int i,int j){
-   double a=0,b=0,c,d,n=0;
-   while((c=a*a)+(d=b*b)<4&&n++<880)
-   {b=2*a*b+j*8e-9-.645411;a=c-d+i*8e-9+.356888;}
-   return 255*pow((n-80)/800,.5);
-}
-"""
+@fixImage(width, height)
+def julia(x, y) :
+	resolution = 4096
+	zoom = 0.7
 
-@ImageGenerator(1024, 1024)
-def mandelbrot(x, y) :
-	def inner() :
-		a = b = 0
-		for n in range(1, 880) :
-			if a*a + b*b >= 4 :
-				c, d = a*a, b*b
-				b = (y * 8e-9 - 0.645411) + 2 * a * b
-				a = (x * 8e-9 + 0.356888) + c - d
+	def iterate(limit, zoom) :
+		zx = (x - (width / 2)) / (width / 2 * zoom)
+		zy = (y - (height / 2)) / (height / 2 * zoom)
+
+		z = zx + zy * 1j
+		c = 0.39 + 0.35j
+
+		for it in range(limit) :
+			if z.real**2 + z.imag**2 < 4 :
+				z = z**2 + c
 			else :
-				return n
+				return it
+		return limit
 
-	val = inner()
-	return [ int(abs((255 * ((val - 80) / 800.0 + 0j)**i).real)) for i in (3, .7, .5) ]
+	val = iterate(resolution, zoom)
+	#return toRGB(int( (val % 256) / 256 * 360 ), 0.8, int(val < resolution)) # rainbow!
+	return [ int(255 * (abs(50 - val) / 50)**i) % 256 for i in (3, .7, .5) ]
+
 
 def main() :
-	simplemandelbrot.generate().show()
+	#julia.generate().show()
+	julia.render("test-{0}.png".format(int(time.time())))
+
 
 if __name__ == "__main__" :
 	main()
