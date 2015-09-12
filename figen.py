@@ -28,8 +28,12 @@ def fixImage(width, height) :
 					try :
 						r, g, b = func(x, y, *args, **kwargs)
 						row.append((r, g, b))
+					except TypeError :
+						raise TypeError("function takes at least 0 arguments")
 					except ValueError :
-						raise ValueError("Rendering function did not return a 3-tupel of RGB values")
+						raise ValueError("rendering function did not return a 3-tupel of RGB values")
+					except Exception as e :
+						raise e.__class__("unknown error occured during function execution: " + e.message)
 				rows.append(row)
 			return Image.fromarray(numpy.array(rows, dtype = "uint8"))
 		generate.__name__ = func.__name__
@@ -45,8 +49,12 @@ def varImage(func) :
 				try :
 					r, g, b = func(x, y, width, height, *args, **kwargs)
 					row.append((r, g, b))
+				except TypeError :
+					raise TypeError("function takes at least 2 arguments")
 				except ValueError :
-					raise ValueError("Rendering function did not return a 3-tupel of RGB values")
+					raise ValueError("rendering function did not return a 3-tupel of RGB values")
+				except Exception as e :
+					raise e.__class__("unknown error occured during function execution: " + e.message)
 			rows.append(row)
 		return Image.fromarray(numpy.array(rows, dtype = "uint8"))
 	generate.__name__ = func.__name__
