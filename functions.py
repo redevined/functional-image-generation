@@ -26,14 +26,14 @@ def grayscale(val) :
 
 
 def rainbow(val) :
-	return convertHSV(int( (val % 256) / 256 * 360 ), 0.8, int(val < jconf.limit))
+	return convertHSV(int( (val % 256) / 256 * 360 ), 0.8, int(val < img.limit))
 
 
 def ice(val) :
 	return [ int(255 * (abs(50 - val) / 50)**i) % 256 for i in (3, .7, .5) ]
 
 
-jconf = Struct(
+img = Struct(
 	width = 2560,
 	height = 1440,
 	limit = 512,
@@ -43,33 +43,61 @@ jconf = Struct(
 )
 
 
-@fixImage(jconf.width, jconf.height)
+@fixImage(img.width, img.height)
 def julia(x, y) :
-	ratio = jconf.width / jconf.height
+	ratio = img.width / img.height
 
 	def iterate() :
-		zx = (x - (jconf.width / 2)) / (jconf.width / 2 * jconf.zoom) * ratio
-		zy = (y - (jconf.height / 2)) / (jconf.height / 2 * jconf.zoom)
+		zx = (x - (img.width / 2)) / (img.width / 2 * img.zoom) * ratio
+		zy = (y - (img.height / 2)) / (img.height / 2 * img.zoom)
 
 		z = zx + zy * 1j
-		c = jconf.c
+		c = img.c
 
-		for it in range(jconf.limit) :
+		for it in range(img.limit) :
 			if z.real**2 + z.imag**2 <= 4 :
 				z = z**2 + c
 			else :
 				return it
-		return jconf.limit
+		return img.limit
 
 	val = iterate()
-	return jconf.color_func(val)
+	return img.color_func(val)
+
+
+@fixImage(1024, 1024)
+def mandelbrot(x, y) :
+	limit = 880
+	zoom = 8e-9
+	dx = 0.356888
+	dy = 0.645411
+	colors = [3, 0.5, 0.7]
+
+	def iterate() :
+		z = complex(0)
+		for n in range(1, limit) :
+			if z.real**2 + z.imag**2 < 4 :
+				add = (
+					(x * zoom + dx) +
+					(y * zoom - dy) * 1j
+				)
+				z = z**2 + add
+			else :
+				return n
+		return limit
+
+	val = iterate()
+	return [
+		int(abs((val - 80) / 800.0)**color * 255)
+		for color in colors
+	]
 
 
 @instant
 @Timer
 def main() :
 	for f in (ice, grayscale, rainbow) :
-		jconf.color_func = f
+		img.color_func = f
 		filedir = "images"
-		filename = "julia_{width}x{height}_{zoom}_{limit}_{c}_{color_func.__name__}".format(**jconf).replace(".", "") + ".png"
+		filename = "julia_{width}x{height}_{zoom}_{limit}_{c}_{color_func.__name__}".format(**img).replace(".", "") + ".png"
 		julia().save(os.path.join(filedir, filename))
