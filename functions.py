@@ -14,37 +14,17 @@ from figen import fixImage, varImage, colors
 from tools import instant, Struct, Timer
 
 
-def convertHSV(hue, sat = 1, val = 1) :
-	r = (1 - abs((hue / 60) % 2 - 1)) if 60 <= hue < 120 or 240 <= hue < 300 else int(hue not in range(120, 240))
-	g = (1 - abs((hue / 60) % 2 - 1)) if 0 <= hue < 60 or 180 <= hue < 240 else int(hue not in range(240, 360))
-	b = (1 - abs((hue / 60) % 2 - 1)) if 120 <= hue < 180 or 300 <= hue < 360 else int(hue not in range(0, 120))
-	return [ int((c * sat + 1 - sat) * val * 255) for c in (r, g, b) ]
-
-
-def grayscale(val) :
-	return [ int(255 * (abs(50 - val) / 50)) ] * 3
-
-
-def rainbow(val) :
-	return convertHSV(int( (val % 256) / 256 * 360 ), 0.8, int(val < img.limit))
-
-
-def ice(val) :
-	return [ int(255 * (abs(50 - val) / 50)**i) % 256 for i in (3, .7, .5) ]
-
-
 img = Struct(
 	width = 2560,
 	height = 1440,
 	limit = 512,
-	zoom = 0.7,
-	color_func = ice,
-	c = -0.595 - 0.45j
+	zoom = 0.9,
+	c = -0.8 - 0.156j
 )
 
 
 @fixImage(img.width, img.height)
-def julia(x, y) :
+def julia(x, y, rgb) :
 	ratio = img.width / img.height
 
 	def iterate() :
@@ -62,7 +42,7 @@ def julia(x, y) :
 		return img.limit
 
 	val = iterate()
-	return img.color_func(val)
+	return rgb(val)
 
 
 @fixImage(1024, 1024)
@@ -93,11 +73,26 @@ def mandelbrot(x, y) :
 	]
 
 
+def showOne() :
+	julia(lambda val : colors.ice(val, 150)).show()
+
+
+def saveAll() :
+	rgb_funcs = (
+		lambda val : colors.ice(val, 150),
+		lambda val : colors.grayscale(val, 150),
+		lambda val : colors.rainbow(val, img.limit),
+		lambda val : colors.helpers.invert(*colors.ice(val, 150)),
+		lambda val : colors.helpers.invert(*colors.grayscale(val, 150)),
+		lambda val : colors.helpers.invert(*colors.rainbow(val, img.limit))
+	)
+	for func in rgb_funcs :
+		filedir = "images"
+		filename = "julia_{width}x{height}_{zoom}_{c}_{id}".format(id = hex(id(func))[2:], **img).replace(".", "") + ".png"
+		julia(func).save(os.path.join(filedir, filename))
+
+
 @instant
 @Timer
 def main() :
-	for f in (ice, grayscale, rainbow) :
-		img.color_func = f
-		filedir = "images"
-		filename = "julia_{width}x{height}_{zoom}_{limit}_{c}_{color_func.__name__}".format(**img).replace(".", "") + ".png"
-		julia().save(os.path.join(filedir, filename))
+	saveAll()

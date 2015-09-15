@@ -14,6 +14,7 @@ Functions:
 
 """
 
+from __future__ import division
 import numpy
 from PIL import Image
 
@@ -69,14 +70,10 @@ class colors(object) :
 		r = g = b = int(255 * c)
 		return r, g, b
 
-
 	def rainbow(self, val, limit) :
 		hue = (val % 256) / 256 * 360
-		sat = 0.8
-		_val = int(val < limit)
-		r, g, b = self.helpers.convertHSV(hue, sat, _val)
+		r, g, b = self.helpers.convertHSV(hue)
 		return r, g, b
-
 
 	def ice(self, val, limit) :
 		c = abs(limit - val) / limit
@@ -86,8 +83,17 @@ class colors(object) :
 	@singleton
 	class helpers(object) :
 
+		def invert(self, r, g, b) :
+			return [ 255 - c for c in (r, g, b) ]
+
 		def convertHSV(self, hue, sat = 1, val = 1) :
-			r = (1 - abs((hue // 60) % 2 - 1)) if 60 <= hue < 120 or 240 <= hue < 300 else int(not (120 <= hue < 240))
-			g = (1 - abs((hue // 60) % 2 - 1)) if 0 <= hue < 60 or 180 <= hue < 240 else int(not (240 <= hue < 360))
-			b = (1 - abs((hue // 60) % 2 - 1)) if 120 <= hue < 180 or 300 <= hue < 360 else int(not (0 <= hue < 120))
-			return [ int((c * sat + 1 - sat) * val * 255) for c in (r, g, b) ]
+			c = 1 - abs((hue / 60) % 2 - 1)
+			r, g, b = [
+				(1, c, 0),
+				(c, 1, 0),
+				(0, 1, c),
+				(0, c, 1),
+				(c, 0, 1),
+				(1, 0, c)
+			][int(hue // 60 % 6)]
+			return [ int((color * sat + 1 - sat) * val * 255) for color in (r, g, b) ]
