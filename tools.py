@@ -20,12 +20,12 @@ def decorator(dec) :
 	return outer
 
 
-def instant(func) :
-	return func()
-
-
 def singleton(cls) :
 	return cls()
+
+
+def recurse(func) :
+	return lambda *args, **kwargs : func(func, *args, **kwargs)
 
 
 class Struct(dict) :
